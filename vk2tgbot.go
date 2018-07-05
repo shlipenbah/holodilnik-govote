@@ -42,9 +42,9 @@ This is a super druper bot which needs to be developed`
 }
 
 func newVote(bot tgbotapi.BotAPI, update tgbotapi.Update) {
-	msgTxt := update.Message.Text
+	msgTxt := update.Message.CommandArguments()
 	msgParts := strings.Split(msgTxt, "_")
-	if len(msgParts) < 4 {
+	if len(msgParts) < 3 {
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "/newvote command take a vote name and alternatives as arguments, see /help"))
 	} else {
 		replay_txt := `You specified a vote ` + msgParts[1] + ` 
