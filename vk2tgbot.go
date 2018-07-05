@@ -4,6 +4,7 @@ import (
 	"log"
 	"fmt"
 	"os"
+	"strings"
 	"io/ioutil"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"gopkg.in/yaml.v2"
@@ -41,16 +42,29 @@ This is a super druper bot which needs to be developed`
 }
 
 func newVote(bot tgbotapi.BotAPI, update tgbotapi.Update) {
-	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, `Specify the name of the Vote`))
-	replay :=  tgbotapi.NewMessage(update.Message.Chat.ID, `You specified "` + update.Message.Text + `"`)
-	replay.ReplyToMessageID = update.Message.MessageID
-	bot.Send(replay)
+	msgTxt := update.Message.Text
+	msgParts := strings.Split(msgTxt, "_")
+	if len(msgParts) < 4 {
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "/newvote command take a vote name and alternatives as arguments, see /help"))
+	} else {
+		replay_txt := `You specified a vote ` + msgParts[1] + ` 
+		with variants:` + "\n" + strings.Join(msgParts[2:], "\n")
+		replay := tgbotapi.NewMessage(update.Message.Chat.ID, replay_txt)
+		replay.ReplyToMessageID = update.Message.MessageID
+		bot.Send(replay)
+	}
 }
+
+func repli(bot tgbotapi.BotAPI, update tgbotapi.Update) {
+		msg_common := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+		msg_common.ReplyToMessageID = update.Message.MessageID
+		bot.Send(msg_common)
+	}
 
 func main() {
 	var c conf
     c.getConf()
-	fmt.Printf(c.Token)
+	
 	if c.Token == "" { 
 		log.Fatalf("There is no token!")
 		os.Exit(1)
@@ -72,17 +86,27 @@ func main() {
 		if update.Message == nil {
 			continue
 		}
-		if update.Message.Text == "/start" || update.Message.Text == "/start@"+bot.Self.UserName {
-			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, getBotStartMsg(bot.Self.UserName)))
-			continue
-		} else if update.Message.Text == "/newvote" || update.Message.Text == "/newvote@"+bot.Self.UserName {
-			newVote(*bot, update)			
-		}
+		
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		bot.Send(msg)
+		
+		if update.Message.IsCommand() {
+			fmt.Println("This is commannddd!!!")
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+			switch update.Message.Command() {
+			case "help":
+				msg.Text = "type /start or /newvote."				
+			case "sayhi":
+				msg.Text = "Hi :)"				
+			case "start":
+				bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, getBotStartMsg(bot.Self.UserName)))				
+			case "newvote":
+				newVote(*bot, update)				
+			default:
+				msg.Text = "I don't know that command"
+			} 
+			bot.Send(msg)
+		} else { 
+			repli(*bot, update) 
+		}		
 	}
 }
